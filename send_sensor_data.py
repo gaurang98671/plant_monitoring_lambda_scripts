@@ -2,7 +2,7 @@ import json
 import boto3
 import math
 from datetime import datetime
-
+from botocore.exceptions import ClientError
 def lambda_handler(event, context):
     allowed_range_high=5
     allowed_range_low=5
@@ -38,7 +38,7 @@ def lambda_handler(event, context):
 
         #Compare values add suggesstions
         
-        plant_data= response["Item"]["data"]
+        
         ideal_plant_data= response["Item"]["ideal_data"]
         suggesstions=[] 
         
@@ -64,6 +64,7 @@ def lambda_handler(event, context):
             suggesstions.append("High humidity")
         else:
             suggesstions.append("Perfect humidity")
+            
         #Check for light
         light_range = ideal_plant_data["light_range"].split("-")
         light_low= int(light_range[0])
@@ -74,29 +75,52 @@ def lambda_handler(event, context):
             suggesstions.append("High light")
         else:
             suggesstions.append("Perfect light")
+            
         #Check for mousture    
-        if(plant_data["moisture"]=="No"):
+        if(plant_moisture=="No"):
             suggesstions.append("Watering needed!")
             
-        #Add plant data along with time stamp
-        db_table.update_item(
-        Key={'pot_id': plant_id},
-       
-        UpdateExpression='SET #name.temperature= :temp, #name.humidity = :humidity, #name.light= :light, #name.moisture= :moisture, #last_updated= :timestamp1, #suggesstions= :sugg',
-        ExpressionAttributeValues={
-        ":temp": int(plant_temperature),
-        ":humidity": int(plant_humidity),
-        ":light" : int(plant_light),
-        ":moisture" : str(plant_moisture),
-        ":timestamp1" : str(last_updated.isoformat()),
-        ":sugg": suggesstions
-        },
-        ExpressionAttributeNames={
-        "#name": "data",
-        "#last_updated": "last_updated",
-        "#suggesstions" : "suggesstions"
-        })
-       
+        #Add plant data along with time stamp to plant table
+        try:
+            
+            db_table.update_item(
+            Key={'pot_id': plant_id},
+           
+            UpdateExpression='SET #name.temperature= :temp, #name.humidity = :humidity, #name.light= :light, #name.moisture= :moisture, #last_updated= :timestamp1, #suggesstions= :sugg',
+            ExpressionAttributeValues={
+            ":temp": int(plant_temperature),
+            ":humidity": int(plant_humidity),
+            ":light" : int(plant_light),
+            ":moisture" : str(plant_moisture),
+            ":timestamp1" : str(last_updated.isoformat()),
+            ":sugg": suggesstions,
+            },
+            ExpressionAttributeNames={
+            "#name": "data",
+            "#last_updated": "last_updated",
+            "#suggesstions" : "suggesstions"
+            })
+               
+        
+     
+        except ClientError as e:
+            
+                
+            if e.response['Error']['Code'] == 'ValidationException':
+                
+            # Creating new top level attribute `info` (with nested props) 
+            # if the previous query failed
+                response = db_table.update_item(
+                    Key={"pot_id": plant_id},
+                    UpdateExpression="set #attrName = :attrValue, #last_updated= :timestamp1, #suggesstions= :sugg",
+                    ExpressionAttributeNames = {"#attrName" : "data", "#last_updated": "last_updated", "#suggesstions": "suggesstions"},
+                    ExpressionAttributeValues={':attrValue': {'temperature': int(plant_temperature), 'humidity': int(plant_humidity), 'light': int(plant_light), 'moisture': str(plant_moisture)},
+                    ":timestamp1":str(last_updated.isoformat()),
+                    ":sugg": suggesstions
+                        
+                    }
+                    )
+                   
         return{
         'statusCode': 200,
         'body': "Plant data updated"}
@@ -109,4 +133,5 @@ def lambda_handler(event, context):
 
     
     
+   
    
