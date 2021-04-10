@@ -12,7 +12,7 @@ def lambda_handler(event, context):
         data = json.loads(event["body"])
     except:
         return {
-        'statusCode': 200,
+        'statusCode': 400,
         'body': "No values provided"
     }
     
@@ -23,7 +23,7 @@ def lambda_handler(event, context):
 
     except:
          return {
-        'statusCode': 200,
+        'statusCode': 400,
         'body': "Missing values"
     }
     
@@ -31,7 +31,7 @@ def lambda_handler(event, context):
     
     if "Item" in response.keys():
         return{
-        'statusCode': 200,
+        'statusCode': 400,
         'body': "User alredy exists"}
     else:
         db_table.put_item(

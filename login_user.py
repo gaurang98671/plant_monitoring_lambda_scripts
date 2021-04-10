@@ -14,7 +14,7 @@ def lambda_handler(event, context):
         data = json.loads(event["body"])
     except:
         return {
-        'statusCode': 200,
+        'statusCode': 400,
         'body': "No values provided"
     }
     
@@ -25,7 +25,7 @@ def lambda_handler(event, context):
 
     except:
          return {
-        'statusCode': 200,
+        'statusCode': 400,
         'body': "Missing values"
     }
     
@@ -39,19 +39,23 @@ def lambda_handler(event, context):
         
         user_data= response["Item"]
         if user_data['user_password'] == user_password:
+            res= {
+                "user_id": str(user_data["user_id"]),
+                "user_name": str(user_data["user_name"])
+            }
             return{
             'statusCode': 200,
-            'body': str(user_data['user_id'])}
+            'body': str(res)}
         else:
             return{
-        'statusCode': 200,
+        'statusCode': 400,
         'body': "Incorrect email or password"}
             
         
         
     else:
         return {
-        'statusCode': 200,
+        'statusCode': 400,
         'body': "Incorrect email or password!"
     }
 
