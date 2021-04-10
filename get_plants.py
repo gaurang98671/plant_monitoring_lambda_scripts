@@ -18,7 +18,7 @@ def lambda_handler(event, context):
     }
     
    
-    
+    #Not the best approach 
     response = db_table.scan(
         FilterExpression=  Attr('user_id').eq(user_id)
         )
@@ -27,6 +27,7 @@ def lambda_handler(event, context):
     
     if len(response["Items"]) is not 0:
         plant_table = boto3.resource('dynamodb').Table('plant')
+        #Not the best approach 
         plants= plant_table.scan(FilterExpression= Attr('user_id').eq(user_id))
         
         res={
